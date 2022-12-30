@@ -4,26 +4,24 @@ class FeatureSelection:
     
 
     # function to find variation ( like Increase/Inc, Decrease/Dec, Equal/Eql) in each column from previous values
-    def count_trend(list):
+    def count_trend(self):
         inc, dec, eql, j = 0, 0, 0, 0
-        while j!=len(list)-1:
-            if list[j]>list[j+1]:
+        while j != len(self) - 1:
+            if self[j] > self[j + 1]:
                 dec+=1
-                j+=1
-            elif list[j]<list[j+1]:
+            elif self[j] < self[j + 1]:
                 inc+=1
-                j+=1
             else:
                 eql+=1
-                j+=1
+            j+=1
         return {'Inc':inc, 'Dec':dec, 'Eql':eql}
     
     # fuctn to find how each column value changes wrt other column values
-    def rate(df, str1, str2):
+    def rate(self, str1, str2):
         import numpy as np
-        
+
         ind = globals()
-        for i in range(2,len(df.columns)):
+        for i in range(2, len(self.columns)):
             ind['ind_{0}'.format(i)] = {str(j):0 for j in range(2, len(df.columns))}
         '''
         ind_2={'2':0,'3':0,'4':0,'5':0,'6':0,'7':0}
@@ -34,9 +32,9 @@ class FeatureSelection:
         ind_7={'2':0,'3':0,'4':0,'5':0,'6':0,'7':0}
         '''
 
-        trend=list()
+        trend = []
         i=0
-        av=df.to_numpy()
+        av = self.to_numpy()
         while i!=len(av)-1:
             vg=[]
             for k, v in zip(av[i], av[i+1]):
@@ -50,8 +48,8 @@ class FeatureSelection:
             trend.append(vg)
         mat = np.array(trend)
         print(mat)
-        
-        
+
+
         i=0
         while i!=len(mat)-1:
             if mat[i+1][2]==str1:
@@ -66,7 +64,7 @@ class FeatureSelection:
                     ind_2['6']+=1
                 elif mat[i+1][7]==str2:
                     ind_2['7']+=1
-                    
+
             elif mat[i+1][3]==str1:
                 ind_3['3']+=1
                 if mat[i+1][2]==str2:
@@ -79,7 +77,7 @@ class FeatureSelection:
                     ind_3['6']+=1
                 elif mat[i+1][7]==str2:
                     ind_3['7']+=1
-            
+
             elif mat[i+1][4]==str1:
                 ind_4['4']+=1
                 if mat[i+1][2]==str2:
@@ -92,7 +90,7 @@ class FeatureSelection:
                     ind_4['6']+=1
                 elif mat[i+1][7]==str2:
                     ind_4['7']+=1
-                               
+
             elif mat[i+1][5]==str1:
                 ind_5['5']+=1
                 if mat[i+1][2]==str2:
@@ -105,7 +103,7 @@ class FeatureSelection:
                     ind_5['6']+=1
                 elif mat[i+1][7]==str2:
                     ind_5['7']+=1
-            
+
             elif mat[i+1][6]==str1:
                 ind_6['6']+=1
                 if mat[i+1][2]==str2:
@@ -118,7 +116,7 @@ class FeatureSelection:
                     ind_6['5']+=1
                 elif mat[i+1][7]==str2:
                     ind_6['7']+=1
-            
+
             elif mat[i+1][7]==str1:
                 ind_7['7']+=1
                 if mat[i+1][2]==str2:
@@ -139,18 +137,18 @@ class FeatureSelection:
     # Function To Calculate Ratios For Each Variation In Each Column Value wrt Other
     # Column Value and Finding Max Ratio To Establish Change of a given Column Value wrt Other Column Value.
 
-    def ratio(df, column):
-        columns = list(df.columns)
+    def ratio(self, column):
+        columns = list(self.columns)
         ind = columns.index(column)
-        
+
         cases = [('Inc','Inc'),('Inc','Dec'),('Inc','Eq'),
            ('Dec','Dec'),('Dec','Inc'),('Dec','Eq'),
            ('Eq','Eq'),('Eq','Dec'),('Eq','Inc')]
-        
-        ratios, index_pairs = list(), list()
+
+        ratios, index_pairs = [], []
         for i in cases:
             j = 0
-            dict = FeatureSelection.rate(df, i[0], i[1])[str(ind)]
+            dict = FeatureSelection.rate(self, i[0], i[1])[str(ind)]
             v1 = dict.pop(str(ind))
             v2 = max(list(dict.values()))
             pairs = list(dict.items())
@@ -159,56 +157,64 @@ class FeatureSelection:
                     j=int(i[0])
             ratios.append(v2/v1)
             index_pairs.append((j, ind))
-            
+
         rat = max(ratios)
         indx = index_pairs[ratios.index(rat)]
-        
-        print('For Sensor Column:- {}'.format(columns[ind]))
+
+        print(f'For Sensor Column:- {columns[ind]}')
         print('Ratio is:', rat)
-        print('When Sensor Column \'{}\' values are {} , Sensor Column \'{}\' values are {}'
-              .format(columns[ind],cases[ratios.index(rat)][0],
-                      columns[j],cases[ratios.index(rat)][1]))
+        print(
+            f"When Sensor Column \'{columns[ind]}\' values are {cases[ratios.index(rat)][0]} , Sensor Column \'{columns[j]}\' values are {cases[ratios.index(rat)][1]}"
+        )
 
 
 
     # Function to detect Avg and Standard Deviation for some
     # window accross each sensor column
 
-    def window(df):
+    def window(self):
         import numpy as np
         import operator, statistics
         from statistics import mean
         time = int(input('Enter Time in Minutes for the Window: (Must be a Multiple of 2):'))
         index = int(time/2+1)
-        col_avg, col_std = list(), list()
+        col_avg, col_std = [], []
         #cols = list(df.columns)
         #cols = cols[2:]
-        cols = list(df.columns)[2:]
+        cols = list(self.columns)[2:]
         #columns = df.iloc[:,2:].values.tolist()
-        columns =  df.iloc[:,2:].aggregate(lambda x: [x.tolist()], axis=0).map(lambda x:x[0])
+        columns = (
+            self.iloc[:, 2:]
+            .aggregate(lambda x: [x.tolist()], axis=0)
+            .map(lambda x: x[0])
+        )
         #columns=[Light,Temp_Air,Temp_Soil,Soil_Moisture_1,Soil_Moisture_2,Soil_Moisture_3]
-        
+
         for i in columns:
-            avg, std = list(), list()
+            avg, std = [], []
             for j in range(0, len(i), index):
                 avg.append(np.mean(i[j:j+index]))
                 std.append(statistics.stdev(i[j:j+index]))
             col_avg.append(np.mean(avg))
             col_std.append(np.mean(std))
-            
+
         for i in range(len(cols)):
-            print('Rate of Change of AVG Across Window For Sensor Column {}: {}'.format(cols[i],col_avg[i])) # cols
-            print('Rate of Change of STD Across Window For Sensor Column {}: {}'.format(cols[i],col_std[i])) # cols
+            print(
+                f'Rate of Change of AVG Across Window For Sensor Column {cols[i]}: {col_avg[i]}'
+            )
+            print(
+                f'Rate of Change of STD Across Window For Sensor Column {cols[i]}: {col_std[i]}'
+            )
 
     # Function to generate features for each sensor columns
-    def features(df, start_sensor_column_index):
+    def features(self, start_sensor_column_index):
         import numpy as np
         import pandas as pd
-        df.iloc[:,start_sensor_column_index:len(df.columns)].astype(np.float64)
+        self.iloc[:, start_sensor_column_index:len(self.columns)].astype(np.float64)
         #print(df.columns)
         #print(df.head())
         change_ovr_time = globals()
-        av=df.to_numpy()
+        av = self.to_numpy()
         #for i in range(2, len(df.columns)):
         change_ovr_time = {str(j):[] for j in df.columns[2:]} #df.columns[2:]
         #print(change_ovr_time)
@@ -216,21 +222,15 @@ class FeatureSelection:
             change_ovr_time={'Light':[],'Temp_Air':[],'Temp_Soil':[],'Soil_Moisture_1':[],
                                  'Soil_Moisture_2':[],'Soil_Moisture_3':[]}
         '''
-        i = 0; trend = list()
+        i = 0
+        trend = []
         while i!=len(av)-1: #-1
-            vg = []
-            for k, v in zip(av[i][2:], av[i+1][2:]):
-                vg.append((v-k)/2)
+            vg = [(v-k)/2 for k, v in zip(av[i][2:], av[i+1][2:])]
             i+=1
             trend.append(vg)
         array = np.array(trend)
         #print(len(array))
         change_ovr_time = {str(j):list(array[:,i]) for i, j in zip(range(array.shape[1]), df.columns[2:])} #df.columns[2:]
-        #print(f' Change over time dict: {change_ovr_time}')
-        #for i, j in zip(range(array.shape[1]), df.columns[2:]):
-            #change_ovr_time = {str(j):list(array[:,i])}
-            #print(change_ovr_time)
-            #print(f' Change over time dict: {change_ovr_time}')
         '''
             for i in range(2, len(df.columns)):
                     change_ovr_time = {str(j):[] for j in df.columns[2:]}
@@ -239,20 +239,14 @@ class FeatureSelection:
                                  'Soil_Moisture_2':list(array[:,4]),'Soil_Moisture_3':list(array[:,5])}
         '''
         rate_of_change_ovr_time={}
-        i=0; trend=[]
+        i=0
+        trend=[]
         while i!=len(array)-1: #-1
-            vg=[]
-            for k,v in zip(array[i],array[i+1]):
-                vg.append((v-k)/2)
+            vg = [(v-k)/2 for k, v in zip(array[i],array[i+1])]
             i+=1
             trend.append(vg)
         array=np.array(trend)
         rate_of_change_ovr_time = {str(j):list(array[:,i]) for i, j in zip(range(array.shape[1]), df.columns[2:])} #df.columns[2:]
-        #print(f' Rate Change over time dict: {rate_of_change_ovr_time}')
-        #for i, j in zip(range(array.shape[1]), df.columns[2:]):
-            #rate_of_change_ovr_time = {str(j):[array[:,i]]}
-            #print(rate_of_change_ovr_time)
-            #print(f' Rate Change over time dict: {rate_of_change_ovr_time}')
         '''
                 for i in range(2, len(df.columns)):
                     change_ovr_time = {str(j):[] for j in df.columns[2:]}
@@ -261,7 +255,8 @@ class FeatureSelection:
                                  'Soil_Moisture_2':list(array[:,4]),'Soil_Moisture_3':list(array[:,5])}
         '''
         growth_decay={}
-        i=0; trend=[]
+        i=0
+        trend=[]
         while i!=len(av)-1: #-1
             vg=[]
             for k,v in zip(av[i][2:],av[i+1][2:]):
@@ -271,16 +266,11 @@ class FeatureSelection:
                     vg.append((v-k)/k)
                 except ZeroDivisionError:
                     vg.append(0)
-                
+
             i+=1
             trend.append(vg)
         array=np.array(trend)
         growth_decay = {str(j):list(array[:,i]) for i, j in zip(range(array.shape[1]), df.columns[2:])} #df.columns[2:]
-        #print(f' growth decay dict: {growth_decay}')
-        #for i, j in zip(range(array.shape[1]-1), df.columns[2:]):
-            #growth_decay = {str(j):[array[:,i]]}
-            #print(growth_decay)
-            #print(f' growth decay dict: {growth_decay}')
         '''
                 for i in range(2, len(df.columns)):
                     change_ovr_time = {str(j):[] for j in df.columns[2:]}
@@ -289,31 +279,24 @@ class FeatureSelection:
                                  'Soil_Moisture_2':list(array[:,4]),'Soil_Moisture_3':list(array[:,5])}
         '''
         rate_growth_decay={}
-        i=0; trend=[]
+        i=0
+        trend=[]
         while i!=len(array)-1: #-1
-            vg=[]
-            for k,v in zip(array[i],array[i+1]):
-                vg.append((v-k)/2)
+            vg = [(v-k)/2 for k, v in zip(array[i],array[i+1])]
             i+=1
             trend.append(vg)
         array=np.array(trend)
         rate_growth_decay = {str(j):list(array[:,i]) for i, j in zip(range(array.shape[1]), df.columns[2:])} #df.columns[2:]
-        #print(f' rate growth decay dict: {rate_growth_decay}')
-        #for i, j in zip(range(array.shape[1]-1), df.columns[2:]):
-            #rate_growth_decay = {str(j):[array[:,i]]}
-            #print(rate_growth_decay)
-            #print(f' rate growth decay dict: {rate_growth_decay}')
         threshold_growth_decay = {str(j):np.mean(growth_decay[str(i)]) for i, j in zip((growth_decay.keys()), df.columns[2:])} #df.columns[2:]
         #print(f' threshold growth decay dict: {threshold_growth_decay}')
 
         count_decay_growth={}
-        counts=[]
-        for i,j in zip(list(growth_decay.values()),list(threshold_growth_decay.values())):
-            c=0
-            for val in i:
-                if val >= j:
-                    c+=1
-            counts.append(c)
+        counts = [
+            sum(val >= j for val in i)
+            for i, j in zip(
+                list(growth_decay.values()), list(threshold_growth_decay.values())
+            )
+        ]
         count_decay_growth = {str(j):counts[i] for i,j in zip(range(len(counts)), df.columns[2:])} #df.columns[2:]
 
         '''
@@ -322,27 +305,20 @@ class FeatureSelection:
             count_decay_growth = {str(j):counts[i] for j in df.columns[2:]}
         '''
 
-            
-        #count_decay_growth={'Light':counts[0],'Temp_Air':counts[1],
-                    #            'Temp_Soil':counts[2],'Soil_Moisture_1':counts[3],'Soil_Moisture_2':counts[4],'Soil_Moisture_3':counts[5]}
-        #print(f' count_decay_growth dict: {count_decay_growth}')    
 
-        #for i in range(counts):
-        #    count_decay_growth = {str(j):counts[i] for j in df.columns[2:]}
-            #print(count_decay_growth)
         #    print(f' count_decay_growth dict: {count_decay_growth}')  
 
         df_change_ovr_time = {str(j):list(change_ovr_time.values())[i] \
-                              for i, j in zip(range(len(change_ovr_time.keys())), df.columns[2:])} # df.columns[2:]
+                                  for i, j in zip(range(len(change_ovr_time.keys())), df.columns[2:])} # df.columns[2:]
 
         df_rate_of_change_ovr_time = {str(j):list(rate_of_change_ovr_time.values())[i] \
-                              for i, j in zip(range(len(rate_of_change_ovr_time.keys())), df.columns[2:])} # df.columns[2:]
+                                  for i, j in zip(range(len(rate_of_change_ovr_time.keys())), df.columns[2:])} # df.columns[2:]
 
         df_growth_decay = {str(j):list(growth_decay.values())[i] \
-                              for i, j in zip(range(len(growth_decay.keys())), df.columns[2:])} # df.columns[2:]
+                                  for i, j in zip(range(len(growth_decay.keys())), df.columns[2:])} # df.columns[2:]
 
         df_rate_growth_decay = {str(j):list(rate_growth_decay.values())[i] \
-                              for i, j in zip(range(len(rate_growth_decay.keys())), df.columns[2:])} # df.columns[2:]
+                                  for i, j in zip(range(len(rate_growth_decay.keys())), df.columns[2:])} # df.columns[2:]
 
 
         '''
@@ -376,7 +352,7 @@ class FeatureSelection:
                                  'Soil_Moisture_1':list(growth_decay.values())[3],'Soil_Moisture_2':list(growth_decay.values())[4],'Soil_Moisture_3':list(growth_decay.values())[5]}
                 df_rate_growth_decay={'Light':list(rate_growth_decay.values())[0],'Temp_Air':list(rate_growth_decay.values())[1],'Temp_Soil':list(rate_growth_decay.values())[2],
                                       'Soil_Moisture_1':list(rate_growth_decay.values())[3],'Soil_Moisture_2':list(rate_growth_decay.values())[4],'Soil_Moisture_3':list(rate_growth_decay.values())[5]}
-        '''        
+        '''
         df1= pd.DataFrame(df_change_ovr_time,columns=list(df_change_ovr_time.keys()))
         df1.to_csv('features_change_over_time.csv',index=False)
         df2= pd.DataFrame(df_rate_of_change_ovr_time,columns=list(df_change_ovr_time.keys()))
@@ -385,9 +361,9 @@ class FeatureSelection:
         df3.to_csv('features_growth_decay.csv',index=False)
         df4= pd.DataFrame(df_rate_growth_decay,columns=list(df_change_ovr_time.keys()))
         df4.to_csv('features_rate_growth_decay.csv',index=False)
-                
+
         print('Count of Growth/Decay value for each Sensor Column Values above or below a threshold value:\n',count_decay_growth)
-        
+
         return change_ovr_time,rate_of_change_ovr_time,growth_decay,rate_growth_decay,(threshold_growth_decay,count_decay_growth)   
 
 
@@ -414,8 +390,8 @@ class FeatureSelection:
                 ((mean(xs)*mean(xs)) - mean(xs*xs)))
             b = mean(ys) - m*mean(xs)
             return m, b
-        
-        for i in range(0,len(columns)):
+
+        for i in range(len(columns)):
             m,b=best_fit_slope_and_intercept(np.array(time_min),np.array(columns[i]))
             regression_line = [(m*x)+b for x in np.array(time_min)]
             plt.subplot((len(columns)/2)+1,2,i+1) # plt.subplot(3,2,i+1) plt.subplot(3,(len(columns)/2)+1,i+1)
@@ -446,7 +422,8 @@ class FeatureSelection:
                 ((mean(xs)*mean(xs)) - mean(xs*xs)))
             b = mean(ys) - m*mean(xs)
             return m, b
-        for i in range(0,len(columns)):
+
+        for i in range(len(columns)):
             m,b=best_fit_slope_and_intercept(np.array(time_min[1:]),np.array(columns[i]))
             regression_line = [(m*x)+b for x in np.array(time_min[1:])]
             plt.subplot((len(columns)/2)+1,2,i+1) # plt.subplot(2,3,i+1) plt.subplot(3,(len(columns)/2)+1,i+1)
@@ -454,7 +431,7 @@ class FeatureSelection:
             plt.plot(time_min[1:],regression_line,'b-')
             plt.title('Time vs {}'.format(list(df.columns)[i+2]))
             plt.ylabel('{}'.format(list(df.columns)[i+2]))
-      
+
         plt.suptitle('Slope For Sensor Columns Showing Change Over Time feature', fontsize=16)
         #plt.show()
         plt.savefig('slope_with_change_over_time.pdf') #, bbox_inches='tight'
@@ -477,7 +454,8 @@ class FeatureSelection:
                 ((mean(xs)*mean(xs)) - mean(xs*xs)))
             b = mean(ys) - m*mean(xs)
             return m, b
-        for i in range(0,len(columns)):
+
+        for i in range(len(columns)):
             m,b=best_fit_slope_and_intercept(np.array(time_min[2:]),np.array(columns[i]))
             regression_line = [(m*x)+b for x in np.array(time_min[2:])]
             plt.subplot((len(columns)/2)+1,2,i+1) # plt.subplot(2,3,i+1) plt.subplot(3,(len(columns)/2)+1,i+1)
@@ -485,7 +463,7 @@ class FeatureSelection:
             plt.plot(time_min[2:],regression_line,'b-')
             plt.title('Rate of Change of {}'.format(list(df.columns)[i+2]))
             plt.ylabel('{}'.format(list(df.columns)[i+2]))
-      
+
         plt.suptitle('Slope For Sensor Columns Showing Rate of Change Over Time feature', fontsize=16)
         #plt.show()
         plt.savefig('slope_with_rate_of_change_over_time.pdf') #, bbox_inches='tight'
@@ -511,7 +489,8 @@ class FeatureSelection:
                 ((mean(xs)*mean(xs)) - mean(xs*xs)))
             b = mean(ys) - m*mean(xs)
             return m, b
-        for i in range(0,len(columns)):
+
+        for i in range(len(columns)):
             m,b=best_fit_slope_and_intercept(np.array(cols[i][:-1]),np.array(columns[i]))
             regression_line = [(m*x)+b for x in np.array(cols[i][:-1])]
             plt.subplot((len(columns)/2)+1,2,i+1) # plt.subplot(2,3,i+1) plt.subplot(3,(len(columns)/2)+1,i+1)
@@ -519,7 +498,7 @@ class FeatureSelection:
             plt.plot(cols[i][:-1],regression_line,'b-')
             plt.title('Growth/Decay for {}'.format(list(df.columns)[i+2]))
             plt.ylabel('Growth/Decay')
-      
+
         plt.suptitle('Slope For Sensor Columns Showing Growth/Deacy feature', fontsize=16)
         #plt.show()
         plt.savefig('slope_with_Growth_nd_Decay.pdf') #, bbox_inches='tight'
@@ -542,7 +521,8 @@ class FeatureSelection:
                 ((mean(xs)*mean(xs)) - mean(xs*xs)))
             b = mean(ys) - m*mean(xs)
             return m, b
-        for i in range(0,len(columns)):
+
+        for i in range(len(columns)):
             m,b=best_fit_slope_and_intercept(np.array(time_min[2:]),np.array(columns[i]))
             regression_line = [(m*x)+b for x in np.array(time_min[2:])]
             plt.subplot((len(columns)/2)+1,2,i+1) # plt.subplot(2,3,i+1) plt.subplot(3,(len(columns)/2)+1,i+1)
@@ -550,16 +530,16 @@ class FeatureSelection:
             plt.plot(time_min[2:],regression_line,'b-')
             plt.title('Growth/Decay Rate for {}'.format(list(df.columns)[i+2]))
             plt.ylabel('Growth/Decay Rate')
-      
+
         plt.suptitle('Slope For Sensor Columns Showing Growth/Deacy Rate feature', fontsize=16)
         #plt.show()
         plt.savefig('slope_with_rate_growth_decay.pdf') #, bbox_inches='tight'
 
     # function to count of growth/decay value for each sensor/column values above or below a threshold value.
-    def Threshold_Counts(df, feature):
+    def Threshold_Counts(self, feature):
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
-        cols=list(df.columns)[2:]
+        cols = list(self.columns)[2:]
         thresholds=list(feature[0].values())
         count=list(feature[1].values())
         plt.plot(cols,thresholds,'go',cols,count,'ro')
@@ -578,90 +558,96 @@ class FeatureSelection:
 class Preprocessing:
     
     # function to find missing values
-    def missing(x):
-        return sum(x.isnull())
+    def missing(self):
+        return sum(self.isnull())
 
     # function to convert to datetime object, and extract date & time columns
-    def datetimeconversion(df, datetimecolindex):
+    def datetimeconversion(self, datetimecolindex):
         import pandas as pd
         import datetime
         # convert to datetime object
 
-        df.iloc[:,datetimecolindex] = pd.to_datetime(df.iloc[:,datetimecolindex])
+        self.iloc[:,datetimecolindex] = pd.to_datetime(self.iloc[:,datetimecolindex])
 
         # Extract date & time separately
-        df['Date'] = df.iloc[:,datetimecolindex].dt.date
-        df['Time'] = df.iloc[:,datetimecolindex].dt.time
+        self['Date'] = self.iloc[:,datetimecolindex].dt.date
+        self['Time'] = self.iloc[:,datetimecolindex].dt.time
 
         #Reorder the DATE, TIME column back to BEGINNING index
-        cols = list(df)
+        cols = list(self)
         # move the column to head of list 
         cols.pop(cols.index('Date')), cols.pop(cols.index('Time'))
-        df = df[['Date','Time']+cols[1:]]
-        return df
+        self = self[['Date','Time']+cols[1:]]
+        return self
 
 class ExploratoryDataAnalysis:
     
     # profiling your dataset
-    def profiling(df): 
-        import pandas_profiling as pp       
+    def profiling(self): 
+        import pandas_profiling as pp
         # To Generate a HTML report file
-        html_report = pp.ProfileReport(df, title="Pandas Profiling Report")
+        html_report = pp.ProfileReport(self, title="Pandas Profiling Report")
         html_report.to_file("./profiling_report.html")
     
     # filtering outliers
-    def drop_outliers(df, z_threshold):
+    def drop_outliers(self, z_threshold):
         from scipy import stats
         import numpy as np
-        constraints = df.select_dtypes(include=[np.number]) \
-            .apply(lambda x: np.abs(stats.zscore(x)) < z_threshold) \
+        constraints = (
+            self.select_dtypes(include=[np.number])
+            .apply(lambda x: np.abs(stats.zscore(x)) < z_threshold)
             .all(axis=1)
-        df.drop(df.index[~constraints], inplace=True)
-        return df
+        )
+        self.drop(self.index[~constraints], inplace=True)
+        return self
 
     # impute missing values
-    def impute(df, modes:int): #start_sensor_column_index, 
+    def impute(self, modes:int): #start_sensor_column_index, 
         import pandas as pd
         if modes==0:
             #df.iloc[:,start_sensor_column_index:len(df.columns)].fillna(0, inplace=True)
-            df.fillna(0, inplace=True)
+            self.fillna(0, inplace=True)
         elif modes==1:
             #df.iloc[:,start_sensor_column_index:len(df.columns)].fillna(df.mean(), inplace=True)
-            df.fillna(df.mean(), inplace=True)
+            self.fillna(self.mean(), inplace=True)
         elif modes==2:
             #df.iloc[:,start_sensor_column_index:len(df.columns)].fillna(df.median(), inplace=True)
-            df.fillna(df.median(), inplace=True)
+            self.fillna(self.median(), inplace=True)
         else:
             #df.iloc[:,start_sensor_column_index:len(df.columns)].fillna(method='bfill', inplace=True) # backfill / bfill: use next valid observation to fill gap.
-            df.fillna(method='bfill', inplace=True)
-        df.to_csv('df_no_NA.csv')
-        return df
+            self.fillna(method='bfill', inplace=True)
+        self.to_csv('df_no_NA.csv')
+        return self
 
     # drop particular column
-    def drop_columns(df, column_index_to_drop:int):
-        df.drop(df.columns[column_index_to_drop], inplace=True, axis=1)
-        return df
+    def drop_columns(self, column_index_to_drop:int):
+        self.drop(self.columns[column_index_to_drop], inplace=True, axis=1)
+        return self
 
 
 class DescriptiveStatistics:
 
     # Stats for whole dataset
-    def desc_all(df, start_sensor_column_index):
+    def desc_all(self, start_sensor_column_index):
         print("Descriptive Statistics")
-        return df.iloc[:,start_sensor_column_index:len(df.columns)].describe() # include='all'
+        return self.iloc[:, start_sensor_column_index:len(self.columns)].describe()
     
     # Stats with relation to response variable and any feature (tobe used if your data is labeled)
-    def desc_target_feature(df, target, feature):
+    def desc_target_feature(self, target, feature):
         print("Descriptive Statistics by Target-Feature")
-        return df.groupby(target)[feature].describe()
+        return self.groupby(target)[feature].describe()
 
 
 class StatisticalEvaluation:
 
     # Test your data for normality/if the data follows normal distribution
-    def normality_test(df, start_sensor_column_index):
+    def normality_test(self, start_sensor_column_index):
         from scipy import stats, norm, shapiro, jarque_bera
-        print("Shapiro-Wilk Normality test (W test statistic, the p-value) =======> {}  ".format(shapiro(df.iloc[:,start_sensor_column_index:len(df.columns)])))
-        print("Jarque-Bera Normality test (W test statistic, the p-value) =======> {}".format(jarque_bera(df.iloc[:,start_sensor_column_index:len(df.columns)])))
+        print(
+            f"Shapiro-Wilk Normality test (W test statistic, the p-value) =======> {shapiro(self.iloc[:, start_sensor_column_index:len(self.columns)])}  "
+        )
+        print(
+            f"Jarque-Bera Normality test (W test statistic, the p-value) =======> {jarque_bera(self.iloc[:, start_sensor_column_index:len(self.columns)])}"
+        )
 
     
