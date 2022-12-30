@@ -8,17 +8,17 @@ class Anamoly:
     #LOOKBACK_SIZE = 10
     KERNEL_SIZE = globals()
 
-    def set_config(**kwargs):
+    def set_config(self):
         """
         Select Model & Window Size : Function to select models from Deep CNN & LSTMAE with Possible Values ['deepcnn', 'lstmaenn'], 
         time window size and kernel size
         """
-        for key, value in kwargs.items():
+        for key, value in self.items():
             print("{0} = {1}".format(key, value))
 
-        MODEL_SELECTED = list(kwargs.values())[0]
-        LOOKBACK_SIZE = list(kwargs.values())[1]
-        KERNEL_SIZE = list(kwargs.values())[2]
+        MODEL_SELECTED = list(self.values())[0]
+        LOOKBACK_SIZE = list(self.values())[1]
+        KERNEL_SIZE = list(self.values())[2]
 
         return MODEL_SELECTED, LOOKBACK_SIZE, KERNEL_SIZE # kwargs
        
@@ -28,22 +28,22 @@ class Anamoly:
     assert KERNEL_SIZE == KERNEL_SIZE
 
 
-    def read_data(data, column_index_to_drop:int,timestamp_column_index:int): 
+    def read_data(self, column_index_to_drop:int, timestamp_column_index:int):
         """
         Data ingestion : Function to read and formulate the data
         """
         import pandas as pd
-        df = data.copy()
-        data.drop(data.columns[column_index_to_drop], inplace=True, axis=1)  
+        df = self.copy()
+        self.drop(self.columns[column_index_to_drop], inplace=True, axis=1)
         #df = data.copy()
-        df.set_index(df.columns[timestamp_column_index], inplace=True) 
+        df.set_index(df.columns[timestamp_column_index], inplace=True)
         df.index = pd.to_datetime(df.index)
         df.fillna(0, inplace=True)
-        data.fillna(0, inplace=True)
-        return data, df
+        self.fillna(0, inplace=True)
+        return self, df
 
 
-    def data_pre_processing(df, LOOKBACK_SIZE=LOOKBACK_SIZE):
+    def data_pre_processing(self, LOOKBACK_SIZE=LOOKBACK_SIZE):
         """
         Data pre-processing : Function to create data for Model
         """
@@ -51,15 +51,17 @@ class Anamoly:
         import numpy as np
         try:
             scaled_data = MinMaxScaler(feature_range = (0, 1))
-            data_scaled_ = scaled_data.fit_transform(df)
-            df.loc[:,:] = data_scaled_
-            _data_ = df.to_numpy(copy=True)
-            X = np.zeros(shape=(df.shape[0]-LOOKBACK_SIZE,LOOKBACK_SIZE,df.shape[1]))
-            X_data = np.zeros(shape=(df.shape[0]-LOOKBACK_SIZE,df.shape[1]))
-            Y = np.zeros(shape=(df.shape[0]-LOOKBACK_SIZE,df.shape[1]))
+            data_scaled_ = scaled_data.fit_transform(self)
+            self.loc[:,:] = data_scaled_
+            _data_ = self.to_numpy(copy=True)
+            X = np.zeros(
+                shape=(self.shape[0] - LOOKBACK_SIZE, LOOKBACK_SIZE, self.shape[1])
+            )
+            X_data = np.zeros(shape=(self.shape[0] - LOOKBACK_SIZE, self.shape[1]))
+            Y = np.zeros(shape=(self.shape[0] - LOOKBACK_SIZE, self.shape[1]))
             timesteps = []
-            for i in range(LOOKBACK_SIZE-1, df.shape[0]-1):
-                timesteps.append(df.index[i])
+            for i in range(LOOKBACK_SIZE-1, self.shape[0] - 1):
+                timesteps.append(self.index[i])
                 Y[i-LOOKBACK_SIZE+1] = _data_[i+1]
                 for j in range(i-LOOKBACK_SIZE+1, i+1):
                     X[i-LOOKBACK_SIZE+1][LOOKBACK_SIZE-1-i+j] = _data_[j]
@@ -150,7 +152,7 @@ class Anamoly:
         return train_step
 
 
-    def compute(X,Y, LOOKBACK_SIZE, num_of_numerical_features:int, epocs:int, MODEL_SELECTED=MODEL_SELECTED, KERNEL_SIZE=KERNEL_SIZE):
+    def compute(self, Y, LOOKBACK_SIZE, num_of_numerical_features:int, epocs:int, MODEL_SELECTED=MODEL_SELECTED, KERNEL_SIZE=KERNEL_SIZE):
         """
             Computation : Find Anomaly using model based computation 
         """
@@ -164,7 +166,10 @@ class Anamoly:
             print(model)
             criterion = torch.nn.MSELoss(reduction='mean')
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
-            train_data = torch.utils.data.TensorDataset(torch.tensor(X.astype(np.float32)), torch.tensor(X.astype(np.float32)))
+            train_data = torch.utils.data.TensorDataset(
+                torch.tensor(self.astype(np.float32)),
+                torch.tensor(self.astype(np.float32)),
+            )
             train_loader = torch.utils.data.DataLoader(dataset=train_data, batch_size=32, shuffle=False)
             train_step = Anamoly.make_train_step(model, criterion, optimizer)
             for epoch in range(epocs):
@@ -176,15 +181,23 @@ class Anamoly:
                     loss_sum += loss_train
                     ctr += 1
                 print("Training Loss: {0} - Epoch: {1}".format(float(loss_sum/ctr), epoch+1))
-            hypothesis = model(torch.from_numpy(X.astype(np.float32)).to(device)).detach().cpu().numpy()
-            loss = np.linalg.norm(hypothesis - X, axis=(1,2))
+            hypothesis = (
+                model(torch.from_numpy(self.astype(np.float32)).to(device))
+                .detach()
+                .cpu()
+                .numpy()
+            )
+            loss = np.linalg.norm(hypothesis - self, axis=(1,2))
             return loss.reshape(len(loss),1), train_data, model
         elif str(MODEL_SELECTED) == "deepcnn":
             model = Anamoly.DeepCNN(LOOKBACK_SIZE,num_of_numerical_features, KERNEL_SIZE).to(device) # 26    DeepCNN(10, 7).to(device)
             print(model)
             criterion = torch.nn.MSELoss(reduction='mean')
             optimizer = torch.optim.Adam(list(model.parameters()), lr=1e-5)
-            train_data = torch.utils.data.TensorDataset(torch.tensor(X.astype(np.float32)), torch.tensor(Y.astype(np.float32)))
+            train_data = torch.utils.data.TensorDataset(
+                torch.tensor(self.astype(np.float32)),
+                torch.tensor(Y.astype(np.float32)),
+            )
             train_loader = torch.utils.data.DataLoader(dataset=train_data, batch_size=32, shuffle=False)
             train_step = Anamoly.make_train_step(model, criterion, optimizer)
             for epoch in range(epocs):
@@ -196,20 +209,25 @@ class Anamoly:
                     loss_sum += loss_train
                     ctr += 1
                 print("Training Loss: {0} - Epoch: {1}".format(float(loss_sum/ctr), epoch+1))
-            hypothesis = model(torch.from_numpy(X.astype(np.float32)).to(device)).detach().cpu().numpy()
+            hypothesis = (
+                model(torch.from_numpy(self.astype(np.float32)).to(device))
+                .detach()
+                .cpu()
+                .numpy()
+            )
             loss = np.linalg.norm(hypothesis - Y, axis=1)
             return loss.reshape(len(loss),1), train_data, model
         else:
             print("Selection of Model is not in the set")
             return None
 
-    def find_anamoly(loss, T):
+    def find_anamoly(self, T):
         """
         Compute Anamoly Confidence Score
         """
         import pandas as pd
 
-        loss_df = pd.DataFrame(loss, columns = ["loss"])
+        loss_df = pd.DataFrame(self, columns = ["loss"])
         loss_df.index = T
         loss_df.index = pd.to_datetime(loss_df.index)
         loss_df["timestamp"] = T
@@ -218,7 +236,7 @@ class Anamoly:
         return loss_df
 
 
-    def plot_anamoly_results(loss_df):
+    def plot_anamoly_results(self):
         """
         Anamoly Visualization 
         """
@@ -226,7 +244,7 @@ class Anamoly:
         import matplotlib.pyplot as plt
         plt.figure(figsize=(20,10))
         sns.set_style("darkgrid")
-        ax = sns.distplot(loss_df["loss"], bins=100, label="Frequency")
+        ax = sns.distplot(self["loss"], bins=100, label="Frequency")
         ax.set_title("Frequency Distribution | Kernel Density Estimation")
         ax.set(xlabel='Anomaly Confidence Score', ylabel='Frequency (sample)')
         plt.axvline(1.80, color="k", linestyle="--")
@@ -234,13 +252,15 @@ class Anamoly:
 
 
         plt.figure(figsize=(20,10))
-        ax = sns.lineplot(x="timestamp", y="loss", data=loss_df, color='g', label="Anomaly Score")
+        ax = sns.lineplot(
+            x="timestamp", y="loss", data=self, color='g', label="Anomaly Score"
+        )
         ax.set_title("Anomaly Confidence Score vs Timestamp")
         ax.set(ylabel="Anomaly Confidence Score", xlabel="Timestamp")
         plt.legend()
 
 
-    def explainable_results(specific_prediction_sample_to_explain:int, X, Y, input_label_index_value, num_labels:int):  # , anamoly_data
+    def explainable_results(specific_prediction_sample_to_explain:int, X, Y, input_label_index_value, num_labels:int):    # , anamoly_data
         """
         Understand, interpret, and trust the results on the deep models at individual/samples level
         """
@@ -324,7 +344,7 @@ class Anamoly:
         '''
         Display the details of the single example
         '''
-        print(X.iloc[specific_prediction_sample_to_explain,:]) 
+        print(X.iloc[specific_prediction_sample_to_explain,:])
         '''
         Choose the label/output/target to run individual explanations on:
 
@@ -332,7 +352,7 @@ class Anamoly:
         '''
         # Create the list of all labels for the drop down list
         #label_cols = ['window_diff_0', 'window_diff_1', 'window_diff_2', 'window_diff_3', 'window_diff_4', 'window_diff_5', 'window_diff_6']
-        label_cols = ['window_diff_'+str(i) for i in range(num_labels)]
+        label_cols = [f'window_diff_{str(i)}' for i in range(num_labels)]
         #print(label_cols)
         df_labels = pd.DataFrame(data = Y, columns = label_cols)
         df_labels.to_csv('y_labels.csv')

@@ -406,13 +406,11 @@ def count_trend(list):
     while j!=len(list)-1:
         if list[j]>list[j+1]:
             dec+=1
-            j+=1
         elif list[j]<list[j+1]:
             inc+=1
-            j+=1
         else:
             eql+=1
-            j+=1
+        j+=1
     return {'Inc':inc, 'Dec':dec, 'Eql':eql}
 
 
@@ -528,7 +526,7 @@ print('For DISK IO Column:',disk_io_percent_trend_max)
 
 
 # forming Variation-Based Array to Define how each column value differs from its previous value
-trend=list()
+trend = []
 i=0
 av=df1.to_numpy()
 while i!=len(av)-1:
@@ -631,12 +629,12 @@ cols
 def ratio(column):
     columns = list(df1.columns)
     ind = columns.index(column)
-    
+
     cases = [('Inc','Inc'),('Inc','Dec'),('Inc','Eq'),
            ('Dec','Dec'),('Dec','Inc'),('Dec','Eq'),
            ('Eq','Eq'),('Eq','Dec'),('Eq','Inc')]
-    
-    ratios, index_pairs = list(), list()
+
+    ratios, index_pairs = [], []
     for i in cases:
         j = 0
         dict = rate(i[0], i[1])[str(ind)]
@@ -652,16 +650,14 @@ def ratio(column):
         except:
             pass
     try:
-        rat = max(ratios) if ratios else 0
+        rat = max(ratios, default=0)
     except:
         indx = index_pairs[ratios.index(rat)]
-        pass
-    
-    print('For Sensor Column:- {}'.format(columns[ind]))
+    print(f'For Sensor Column:- {columns[ind]}')
     print('Ratio is:', rat)
-    print('When Sensor Column \'{}\' values are {} , Sensor Column \'{}\' values are {}'
-          .format(columns[ind],cases[ratios.index(rat)][0],
-                  columns[j],cases[ratios.index(rat)][1]))
+    print(
+        f"When Sensor Column \'{columns[ind]}\' values are {cases[ratios.index(rat)][0]} , Sensor Column \'{columns[j]}\' values are {cases[ratios.index(rat)][1]}"
+    )
 
 
 # In[64]:
@@ -686,19 +682,19 @@ for i in cols:
 def window():
     time = int(input('Enter Time in Seconds for the Window: (Must be a Multiple of 2):'))
     index = int(time/60+1)
-    col_avg, col_std = list(), list()
+    col_avg, col_std = [], []
     columns=[cpu_util_percent, mem_util_percent, net_in] 
-    
+
     for i in columns:
-        avg, std = list(), list()
-        for j in range(0, len(i), index):
-            avg.append(np.mean(i[j:j+index]))
-            #std.append(statistics.stdev(i[j:j+index]))
+        avg, std = [], []
+        avg.extend(np.mean(i[j:j+index]) for j in range(0, len(i), index))
         col_avg.append(np.mean(avg))
-        #col_std.append(np.mean(std))
-        
+            #col_std.append(np.mean(std))
+
     for i in range(len(columns)):
-        print('Rate of Change of AVG Across Window For Sensor Column {}: {}'.format(cols[i],col_avg[i]))
+        print(
+            f'Rate of Change of AVG Across Window For Sensor Column {cols[i]}: {col_avg[i]}'
+        )
         #print('Rate of Change of STD Across Window For Sensor Column {}: {}'.format(cols[i],col_std[i]))
 
 
@@ -716,24 +712,22 @@ window()
 # Function to generate features for each sensor columns
 def features():
     change_ovr_time={'cpu_util_percent':[],'mem_util_percent':[],'net_in':[]}
-    i = 0; trend = list()
+    i = 0
+    trend = []
     while i!=len(av)-1:
-        vg = []
-        for k, v in zip(av[i][2:], av[i+1][2:]):
-            vg.append((v-k)/2)
+        vg = [(v-k)/2 for k, v in zip(av[i][2:], av[i+1][2:])]
         i+=1
         trend.append(vg)
     array = np.array(trend)
     change_ovr_time ={'cpu_util_percent':list(array[:,0]),'mem_util_percent':list(array[:,1]),
                       'net_in':list(array[:,2])
                      }
-    
+
     rate_of_change_ovr_time={}
-    i=0; trend=[]
+    i=0
+    trend=[]
     while i!=len(array)-1:
-        vg=[]
-        for k,v in zip(array[i],array[i+1]):
-            vg.append((v-k)/2)
+        vg = [(v-k)/2 for k, v in zip(array[i],array[i+1])]
         i+=1
         trend.append(vg)
 
@@ -741,13 +735,12 @@ def features():
     rate_of_change_ovr_time={'cpu_util_percent':list(array[:,0]),'mem_util_percent':list(array[:,1]),
                       'net_in':list(array[:,2])
                      }
-    
+
     growth_decay={}
-    i=0; trend=[]
+    i=0
+    trend=[]
     while i!=len(av)-1:
-        vg=[]
-        for k,v in zip(av[i][2:],av[i+1][2:]):
-            vg.append((v-k)/k)
+        vg = [(v-k)/k for k, v in zip(av[i][2:],av[i+1][2:])]
         i+=1
         trend.append(vg)
 
@@ -755,13 +748,12 @@ def features():
     growth_decay={'cpu_util_percent':list(array[:,0]),'mem_util_percent':list(array[:,1]),
                       'net_in':list(array[:,2])
                      }
-    
+
     rate_growth_decay={}
-    i=0; trend=[]
+    i=0
+    trend=[]
     while i!=len(array)-1:
-        vg=[]
-        for k,v in zip(array[i],array[i+1]):
-            vg.append((v-k)/2)
+        vg = [(v-k)/2 for k, v in zip(array[i],array[i+1])]
         i+=1
         trend.append(vg)
 
@@ -769,29 +761,28 @@ def features():
     rate_growth_decay={'cpu_util_percent':list(array[:,0]),'mem_util_percent':list(array[:,1]),
                       'net_in':list(array[:,2])
                      }
-    
+
     threshold_growth_decay={'cpu_util_percent':np.mean(growth_decay['cpu_util_percent']),
                             'mem_util_percent':np.mean(growth_decay['mem_util_percent']),
                             'net_in':np.mean(growth_decay['net_in'])}
-    
-    
+
+
     count_decay_growth={}
-    counts=[]
-    for i,j in zip(list(growth_decay.values()),list(threshold_growth_decay.values())):
-        c=0
-        for val in i:
-            if val>=j:
-                c+=1
-        counts.append(c)
+    counts = [
+        sum(val >= j for val in i)
+        for i, j in zip(
+            list(growth_decay.values()), list(threshold_growth_decay.values())
+        )
+    ]
     count_decay_growth={'cpu_util_percent':counts[0],'mem_util_percent':counts[1],
                         'net_in':counts[2]}
-    
-    
+
+
     df_change_ovr_time={'cpu_util_percent':list(change_ovr_time.values())[0],'mem_util_percent':list(change_ovr_time.values())[1],'net_in':list(change_ovr_time.values())[2]}
     df_rate_of_change_ovr_time={'cpu_util_percent':list(rate_of_change_ovr_time.values())[0],'mem_util_percent':list(rate_of_change_ovr_time.values())[1],'net_in':list(rate_of_change_ovr_time.values())[2]}
     df_growth_decay={'cpu_util_percent':list(growth_decay.values())[0],'mem_util_percent':list(growth_decay.values())[1],'net_in':list(growth_decay.values())[2]}
     df_rate_growth_decay={'cpu_util_percent':list(rate_growth_decay.values())[0],'mem_util_percent':list(rate_growth_decay.values())[1],'net_in':list(rate_growth_decay.values())[2]}
-    
+
     df1= pd.DataFrame(df_change_ovr_time,columns=list(df_change_ovr_time.keys()))
     #df1.to_csv('features_change_over_time.csv',index=False)
     df2= pd.DataFrame(df_rate_of_change_ovr_time,columns=list(df_change_ovr_time.keys()))
@@ -800,9 +791,9 @@ def features():
     #df3.to_csv('features_growth_decay.csv',index=False)
     df4= pd.DataFrame(df_rate_growth_decay,columns=list(df_change_ovr_time.keys()))
     #df4.to_csv('features_rate_growth_decay.csv',index=False)
-    
+
     print('Count of Growth/Decay value for each Sensor Column Values above or below a threshold value:\n',count_decay_growth)
-    
+
     return change_ovr_time,rate_of_change_ovr_time,growth_decay,rate_growth_decay,(threshold_growth_decay,count_decay_growth)   
 
 
@@ -811,14 +802,14 @@ def features():
 
 # Functions to create plot of various sensors and features
 def plot():
-    columns=[cpu_util_percent, mem_util_percent, net_in] 
+    columns=[cpu_util_percent, mem_util_percent, net_in]
     def best_fit_slope_and_intercept(xs,ys):
         m = (((mean(xs)*mean(ys)) - mean(xs*ys)) /
             ((mean(xs)*mean(xs)) - mean(xs*xs)))
         b = mean(ys) - m*mean(xs)
         return m, b
-    
-    for i in range(0,len(columns)):
+
+    for i in range(len(columns)):
         m,b=best_fit_slope_and_intercept(np.array(time_sec),np.array(columns[i]))
         regression_line = [(m*x)+b for x in np.array(time_sec)]
         plt.subplot(3,2,i+1)
@@ -842,7 +833,8 @@ def plot_change_ovr_time(feature):
             ((mean(xs)*mean(xs)) - mean(xs*xs)))
         b = mean(ys) - m*mean(xs)
         return m, b
-    for i in range(0,len(columns)):
+
+    for i in range(len(columns)):
         m,b=best_fit_slope_and_intercept(np.array(time_min[1:]),np.array(columns[i]))
         regression_line = [(m*x)+b for x in np.array(time_min[1:])]
         plt.subplot(2,3,i+1)
@@ -850,7 +842,7 @@ def plot_change_ovr_time(feature):
         plt.plot(time_min[1:],regression_line,'b-')
         plt.title('Time vs {}'.format(list(df1.columns)[i+2]))
         plt.ylabel('{}'.format(list(df1.columns)[i+2]))
-  
+
     plt.suptitle('Slope For Sensor Columns Showing Change Over Time feature', fontsize=16)
     #plt.show()
     plt.savefig('slope_with_change_over_time.pdf') #, bbox_inches='tight'
@@ -872,7 +864,8 @@ def plot_rate_of_change_ovr_time(feature):
             ((mean(xs)*mean(xs)) - mean(xs*xs)))
         b = mean(ys) - m*mean(xs)
         return m, b
-    for i in range(0,len(columns)):
+
+    for i in range(len(columns)):
         m,b=best_fit_slope_and_intercept(np.array(time_min[2:]),np.array(columns[i]))
         regression_line = [(m*x)+b for x in np.array(time_min[2:])]
         plt.subplot(2,3,i+1)
@@ -880,7 +873,7 @@ def plot_rate_of_change_ovr_time(feature):
         plt.plot(time_min[2:],regression_line,'b-')
         plt.title('Rate of Change of {}'.format(list(df1.columns)[i+2]))
         plt.ylabel('{}'.format(list(df1.columns)[i+2]))
-  
+
     plt.suptitle('Slope For Sensor Columns Showing Rate of Change Over Time feature', fontsize=16)
     #plt.show()
     plt.savefig('slope_with_rate_of_change_over_time.pdf') #, bbox_inches='tight'
@@ -903,7 +896,8 @@ def plot_growth_decay(feature):
             ((mean(xs)*mean(xs)) - mean(xs*xs)))
         b = mean(ys) - m*mean(xs)
         return m, b
-    for i in range(0,len(columns)):
+
+    for i in range(len(columns)):
         m,b=best_fit_slope_and_intercept(np.array(cols[i][:-1]),np.array(columns[i]))#[:-1]
         regression_line = [(m*x)+b for x in np.array(cols[i][:-1])] #[:-1]
         plt.subplot(2,3,i+1)
@@ -911,7 +905,7 @@ def plot_growth_decay(feature):
         plt.plot(cols[i][:-1],regression_line,'b-')
         plt.title('Growth/Decay for {}'.format(list(df1.columns)[i+2]))
         plt.ylabel('Growth/Decay')
-  
+
     plt.suptitle('Slope For Sensor Columns Showing Growth/Deacy feature', fontsize=16)
     plt.show()
     plt.savefig('slope_with_Growth_nd_Decay.pdf') #, bbox_inches='tight'
@@ -933,7 +927,8 @@ def plot_rate_growth_decay(feature):
             ((mean(xs)*mean(xs)) - mean(xs*xs)))
         b = mean(ys) - m*mean(xs)
         return m, b
-    for i in range(0,len(columns)):
+
+    for i in range(len(columns)):
         m,b=best_fit_slope_and_intercept(np.array(time_sec[2:]),np.array(columns[i]))
         regression_line = [(m*x)+b for x in np.array(time_sec[2:])]
         plt.subplot(2,3,i+1)
@@ -941,7 +936,7 @@ def plot_rate_growth_decay(feature):
         plt.plot(time_sec[2:],regression_line,'b-')
         plt.title('Growth/Decay Rate for {}'.format(list(df1.columns)[i+2]))
         plt.ylabel('Growth/Decay Rate')
-  
+
     plt.suptitle('Slope For Sensor Columns Showing Growth/Deacy Rate feature', fontsize=16)
     plt.show()
     plt.savefig('slope_with_rate_growth_decay.pdf') #, bbox_inches='tight'
